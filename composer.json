@@ -1,36 +1,49 @@
 {
-    "name": "polokij/laravel-vault-env",
-    "description": "Hashicorp Vault client for Laravel with possibility set the env variables from Vault secret dynamically",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Vitalii Liubimov",
-            "email": "vitalii@liubimov.org"
-        }
-    ],
-    "require": {
-        "php": ">=8.0",
-        "laravel/framework": "^9.0 | ^10.0"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^10.4",
-        "barryvdh/laravel-ide-helper": "^2.13"
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "autoload": {
-        "psr-4": {
-            "LaravelVault\\": "src/"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "LaravelVault\\VaultServiceProvider"
-            ],
-            "aliases": {
-                "Vault": "LaravelVault\\VaultFacade"
-            }
-        }
+  "name": "polokij/laravel-vault-env",
+  "description": "Hashicorp Vault client for Laravel with possibility set the env variables from Vault secret dynamically",
+  "license": "MIT",
+  "keywords": [
+    "laravel",
+    "vault",
+    "secret",
+    "env",
+    "dynamic",
+    "hashicorp",
+    "environemnt variables",
+    "API client",
+    "multi-tenant",
+    "secret storage",
+    "bootstrapper"
+  ],
+  "authors": [
+    {
+      "name": "Vitalii Liubimov",
+      "email": "vitalii@liubimov.org"
     }
+  ],
+  "require": {
+    "php": ">=8.0",
+    "laravel/framework": "^9.0 | ^10.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.4",
+    "barryvdh/laravel-ide-helper": "^2.13"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "autoload": {
+    "psr-4": {
+      "LaravelVault\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "LaravelVault\\VaultServiceProvider"
+      ],
+      "aliases": {
+        "Vault": "LaravelVault\\VaultFacade"
+      }
+    }
+  }
 }
