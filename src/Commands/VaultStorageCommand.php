@@ -3,7 +3,7 @@
 namespace LaravelVault\Commands;
 
 use Illuminate\Console\Command;
-use Vault;
+use LaravelVault\VaultFacade as Vault;
 
 class VaultStorageCommand extends Command
 {

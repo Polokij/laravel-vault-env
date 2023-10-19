@@ -31,9 +31,6 @@ class VaultServiceProvider extends ServiceProvider
             return $client;
         });
 
-        $loader = AliasLoader::getInstance();
-        $loader->alias('Vault', VaultFacade::class);
-
         $this->commands([
             VaultStorageCommand::class,
             VaultUnsealCommand::class,
@@ -43,7 +40,9 @@ class VaultServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-
+        $this->publishes([
+            __DIR__.'/../config/vault.php' => config_path('vault.php'),
+        ], 'config');
 
     }
 
@@ -54,6 +53,6 @@ class VaultServiceProvider extends ServiceProvider
      */
     public function provides()
     {
-        return ['vault', VaultClient::class];
+        return ['vault'];
     }
 }

@@ -4,7 +4,7 @@ namespace LaravelVault\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
-use Vault;
+use LaravelVault\VaultFacade as Vault;
 
 class VaultUnsealCommand extends Command
 {

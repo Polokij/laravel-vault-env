@@ -28,6 +28,8 @@ class VaultClient
 
     private string $policyTemplate = '';
 
+    private int $timeout = 1;
+
     /**
      * @var Response
      */
@@ -35,12 +37,10 @@ class VaultClient
 
 
     /**
-     * @param  string  $host
-     * @param  string  $port
-     * @param          $schema
      * @param  string  $address
      * @param  string  $storage
-     * @param          $token
+     * @param  string  $prefix
+     * @param  string  $token
      */
     public function __construct(
         private string $address = '',
@@ -108,7 +108,7 @@ class VaultClient
     {
         $path = $this->getPath($path);
         $request = Http::withHeaders($this->headers)
-            ->timeout(1)
+            ->timeout($this->timeout)
             ->accept('application/json');
 
         $this->response = $method($path, $request);
@@ -474,5 +474,17 @@ class VaultClient
     public function setPolicyTemplate(string $policyTemplate): void
     {
         $this->policyTemplate = $policyTemplate;
+    }
+
+
+    public function getTimeout(): string
+    {
+        return $this->timeout;
+    }
+
+
+    public function setTimeout(string $timeout): void
+    {
+        $this->timeout = $timeout;
     }
 }
