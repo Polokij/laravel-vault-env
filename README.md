@@ -67,6 +67,7 @@ $app = new Illuminate\Foundation\Application(
 );
 
 $app->afterLoadingEnvironment(function () use ($app) {
+    // checking is the feature enabled
     if (env('VAULT_LOAD_ENV', false)) {
         try {
             $tenantId = env('TENANT_ID');
