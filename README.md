@@ -18,7 +18,7 @@ Here it bref implementation of the required features:
     - Laravel 9+
     - PHP 8+
 
-## Instalation
+## Installation
 
 Adding composer package
 
@@ -58,8 +58,51 @@ Vault::instance()->auth->get('some/not/implemented/endpoints'); // call the othe
 ```
 
 ### Bootstrap the application with dynamic env variables
-To enable this feature override the array of bootstrappers on _app/Console/Kernel.php_ and _app/Http/Kernel.php_ files
+Example for Multi-tenant application: 
 
+**bootstrap/app.php**
+```php
+$app = new Illuminate\Foundation\Application(
+    $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
+);
+
+$app->afterLoadingEnvironment(function () use ($app) {
+    if (env('VAULT_LOAD_ENV', false)) {
+        try {
+            $tenantId = env('TENANT_ID');
+
+            // resolving tenant_id by headers - make sure proxy override this header for security reason
+            if (!$tenantId) {
+                $headers = collect(getallheaders());
+                $tenantIdHeader = env('TENANT_ID_HEADER', 'tenant-id');
+                $tenantId = $headers
+                    ->first(fn($value, $key) => $key === $tenantIdHeader
+                        || strtolower($key) === $tenantIdHeader);
+            }
+
+            if (!$tenantId) {
+                throw new Exception('Missed Tenant_id ');
+            }
+
+            $envRepository = Env::getRepository();
+            $vaultDefaultPrefix = $envRepository->get('VAULT_KEY_PREFIX');
+            $envRepository->set('VAULT_KEY_PREFIX', $vaultDefaultPrefix.'/'.$tenantId);
+
+            (new LoadEnvironmentVariablesVault)->bootstrap($app);
+        } catch (Throwable $e) {
+            // preparing the logs for exception
+            $app->instance('config', $config = new Repository([]));
+
+            throw $e;
+        }
+    }
+});
+````
+
+#### Alternative way
+
+
+To enable this feature override the array of bootstrappers on _app/Console/Kernel.php_ and _app/Http/Kernel.php_ files
 **app/Console/Kernel.php**
 ```php
 use LaravelVault\LoadEnvironmentVariablesVault;

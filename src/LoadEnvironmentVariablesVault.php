@@ -37,7 +37,7 @@ class LoadEnvironmentVariablesVault
 
         // Overriding the values from .env file
         $envRepository = Env::getRepository();
-        $envVariables->each(fn($value, $key) => $envRepository->set($key, $value));
+        $envVariables->each(fn($value, $key) => $envRepository->set($key, (string) $value));
     }
 
 
