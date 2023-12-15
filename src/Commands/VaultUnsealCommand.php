@@ -63,6 +63,8 @@ class VaultUnsealCommand extends Command
             }
 
             Vault::setToken($unsealData['root_token']);
+            Vault::setTimeout(3);// last unseal request could take some time
+
             $unsealKeys->each(fn($key) => $this->unseal($key));
         } else {
             collect(\explode(',', $arguments['key']))
