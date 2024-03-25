@@ -35,6 +35,7 @@ class VaultClient
      */
     private Response $response;
 
+    private array $options = [];
 
     /**
      * @param  string  $address
@@ -109,7 +110,8 @@ class VaultClient
         $path = $this->getPath($path);
         $request = Http::withHeaders($this->headers)
             ->timeout($this->timeout)
-            ->accept('application/json');
+            ->accept('application/json')
+            ->withOptions($this->options);;
 
         $this->response = $method($path, $request);
 
@@ -486,5 +488,11 @@ class VaultClient
     public function setTimeout(string $timeout): void
     {
         $this->timeout = $timeout;
+    }
+
+
+    public function setOptions(array $options): void
+    {
+        $this->options = $options;
     }
 }
