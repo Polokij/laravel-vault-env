@@ -37,6 +37,7 @@ class VaultClient
 
     private array $options = [];
 
+
     /**
      * @param  string  $address
      * @param  string  $storage
@@ -52,6 +53,15 @@ class VaultClient
         if ($token) {
             $this->setToken($token);
         }
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getStorage(): string
+    {
+        return $this->storage;
     }
 
 
@@ -236,7 +246,6 @@ class VaultClient
 
 
     /**
-     *
      * @param $path
      *
      * @return array|mixed
