@@ -8,7 +8,7 @@ use LaravelVault\VaultFacade as Vault;
 
 class VaultUnsealCommand extends Command
 {
-    protected $signature = 'vault:unseal {--s|status} {--r|reset} {--seal} {--i|interactive}{--f|file} {key?}';
+    protected $signature = 'vault:unseal {--s|status} {--r|reset} {--seal} {--i|interactive}{--f|file} {--timeout} {key?} ';
 
     protected $description = 'Unseal the vault';
 
@@ -17,6 +17,10 @@ class VaultUnsealCommand extends Command
 
     public function handle(): void
     {
+        if ($this->option('timeout') && \is_numeric($this->option('timeout'))) {
+            Vault::setTimeout((int) $this->option('timeout'));
+        }
+
         $this->status($this->option('status'));
         $arguments = collect($this->arguments());
 
@@ -75,7 +79,9 @@ class VaultUnsealCommand extends Command
         exit(0);
     }
 
-    private function status($display) {
+
+    private function status($display)
+    {
         $this->status = collect(Vault::status());
 
         if ($display) {
@@ -83,23 +89,27 @@ class VaultUnsealCommand extends Command
         }
     }
 
-    private function displayResponse(Collection $collection) {
-        $collection->each(fn($value, $key) => $this->info("$key: " . \json_encode($value), ));
+
+    private function displayResponse(Collection $collection)
+    {
+        $collection->each(fn($value, $key) => $this->info("$key: ".\json_encode($value),));
     }
 
-    private function unseal(string $key): bool {
+
+    private function unseal(string $key): bool
+    {
         $result = Vault::unseal($key);
 
         if (Vault::getResponse()->successful()) {
             $this->status = collect($result);
         } else {
-            \Log::error(Vault::getResponse()->body(). '');
+            \Log::error(Vault::getResponse()->body().'');
 
             return false;
         }
 
         $this->info("Unseal progress: {$result['progress']}  Status:"
-            .  ($result['sealed'] ? 'sealed' : 'unsealed'));
+            .($result['sealed'] ? 'sealed' : 'unsealed'));
 
         return $result['sealed'];
     }
