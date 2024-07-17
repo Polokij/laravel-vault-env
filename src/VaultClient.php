@@ -423,6 +423,29 @@ class VaultClient
 
 
     /**
+     * @param  string  $key
+     *
+     * @return bool
+     * @throws RequestException
+     */
+    public function secretDestroyRecursive(string $key = ''): bool
+    {
+        $this->setThrowException(false);
+
+        if (!$key || Str::endsWith( $key, '/')) {
+            collect($this->secretsList($key)['keys'] ?? [])
+                ->each(function ($secretKey, $index) use ($key) {
+                    $this->destroyRecursive("$key" . "$secretKey");
+                });
+        }
+
+        $result = $this->secretDestroy($key);
+
+        return !isset($result['errors']);
+    }
+
+
+    /**
      * @return Response
      */
     public function getResponse(): Response
