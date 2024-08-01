@@ -7,13 +7,27 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use LaravelVault\Enums\Action;
 
+/**
+ * Class VaultClient
+ *
+ * @author  Vitalii Liubimov <vitalii@liubimov.org>
+ * @package LaravelVault
+ * @property-read VaultClient $auth
+ * @property-read VaultClient $sys
+ */
 class VaultClient
 {
+    /**
+     * @var array
+     */
     private array $headers = [
         'X-Vault-Request' => true,
         'Content-Type' => 'application/json',
     ];
 
+    /**
+     * @var bool
+     */
     private bool $throwException = true;
 
     /**
@@ -26,8 +40,14 @@ class VaultClient
      */
     private string $apiEndpoint = '';
 
+    /**
+     * @var string
+     */
     private string $policyTemplate = '';
 
+    /**
+     * @var int
+     */
     private int $timeout = 1;
 
     /**
@@ -35,6 +55,9 @@ class VaultClient
      */
     private Response $response;
 
+    /**
+     * @var array
+     */
     private array $options = [];
 
 
@@ -363,12 +386,13 @@ class VaultClient
 
     /**
      * @param  string  $key
-     * @param          $value
+     * @param  null    $value
+     * @param  array   $metadata
      *
      * @return mixed
      * @throws RequestException
      */
-    public function secret(string $key = '', $value = null): mixed
+    public function secret(string $key = '', $value = null, array $metadata = []): mixed
     {
         $path = $this->getSecretPath($key);
 
@@ -378,9 +402,17 @@ class VaultClient
             return $secretResponse['data'] ?? $secretResponse;
         }
 
-        $payload = ['data' => $value];
+        $secretPostBody = $this->post($path, ['data' => $value]);
 
-        return $this->post($path, $payload);
+        if ($this->getResponse()->successful() && $metadata) {
+            $metadataKey = \Str::replaceFirst('data', 'metadata', $path);
+
+            $metadataUpdateBody = $this->post($metadataKey, ['custom_metadata' => $metadata]);
+
+            return $metadataUpdateBody;
+        }
+
+        return $secretPostBody;
     }
 
 
@@ -432,10 +464,10 @@ class VaultClient
     {
         $this->setThrowException(false);
 
-        if (!$key || Str::endsWith( $key, '/')) {
+        if (!$key || Str::endsWith($key, '/')) {
             collect($this->secretsList($key)['keys'] ?? [])
                 ->each(function ($secretKey, $index) use ($key) {
-                    $this->destroyRecursive("$key" . "$secretKey");
+                    $this->destroyRecursive("$key"."$secretKey");
                 });
         }
 
@@ -511,18 +543,31 @@ class VaultClient
     }
 
 
+    /**
+     * @return string
+     */
     public function getTimeout(): string
     {
         return $this->timeout;
     }
 
 
+    /**
+     * @param  string  $timeout
+     *
+     * @return void
+     */
     public function setTimeout(string $timeout): void
     {
         $this->timeout = $timeout;
     }
 
 
+    /**
+     * @param  array  $options
+     *
+     * @return void
+     */
     public function setOptions(array $options): void
     {
         $this->options = $options;
