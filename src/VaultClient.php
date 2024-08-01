@@ -460,20 +460,38 @@ class VaultClient
      * @return bool
      * @throws RequestException
      */
-    public function secretDestroyRecursive(string $key = ''): bool
+    public function destroyRecursive(string $key): bool
     {
         $this->setThrowException(false);
+        $key = rtrim($key, '/');
+        collect($this->secretsList($key)['keys'] ?? [])
+            ->each(function ($nestedKey) use ($key) {
+                if (Str::endsWith($nestedKey, '/')) {
+                    $this->destroyRecursive("$key/$nestedKey");
 
-        if (!$key || Str::endsWith($key, '/')) {
-            collect($this->secretsList($key)['keys'] ?? [])
-                ->each(function ($secretKey, $index) use ($key) {
-                    $this->destroyRecursive("$key"."$secretKey");
-                });
-        }
+                    return;
+                }
+
+                $this->secretDestroy("$key/$nestedKey");
+            });
 
         $result = $this->secretDestroy($key);
 
         return !isset($result['errors']);
+    }
+
+
+    /**
+     * Alias for destroyRecursive method
+     *
+     * @param  string  $key
+     *
+     * @return bool
+     * @throws RequestException
+     */
+    public function secretDestroyRecursive(string $key = ''): bool
+    {
+        return $this->destroyRecursive($key);
     }
 
 
@@ -517,9 +535,11 @@ class VaultClient
      *
      * @return void
      */
-    public function setThrowException(bool $throwException): void
+    public function setThrowException(bool $throwException): self
     {
         $this->throwException = $throwException;
+
+        return $this;
     }
 
 
