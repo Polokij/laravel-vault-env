@@ -28,6 +28,14 @@ class VaultServiceProvider extends ServiceProvider
                 $client->setPolicyTemplate($policy_template);
             }
 
+            if ($timeout ?? null) {
+                $client->setTimeout($timeout);
+            }
+
+            if ($retries ?? null) {
+                $client->setRetries($retries);
+            }
+
             return $client;
         });
 
