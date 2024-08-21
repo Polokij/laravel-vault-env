@@ -48,6 +48,11 @@ class VaultClient
     /**
      * @var int
      */
+    private int $retries = 1;
+
+    /**
+     * @var int
+     */
     private int $timeout = 1;
 
     /**
@@ -141,10 +146,15 @@ class VaultClient
     private function processRequest(\Closure $method, string $path): mixed
     {
         $path = $this->getPath($path);
+
         $request = Http::withHeaders($this->headers)
             ->timeout($this->timeout)
             ->accept('application/json')
-            ->withOptions($this->options);;
+            ->withOptions($this->options);
+
+        if ($this->retries > 1) {
+            $request->retry($this->retries, 10, throw: false);
+        }
 
         $this->response = $method($path, $request);
 
@@ -557,9 +567,11 @@ class VaultClient
      *
      * @return void
      */
-    public function setPolicyTemplate(string $policyTemplate): void
+    public function setPolicyTemplate(string $policyTemplate): self
     {
         $this->policyTemplate = $policyTemplate;
+
+        return $this;
     }
 
 
@@ -577,9 +589,11 @@ class VaultClient
      *
      * @return void
      */
-    public function setTimeout(string $timeout): void
+    public function setTimeout(string $timeout): self
     {
         $this->timeout = $timeout;
+
+        return $this;
     }
 
 
@@ -588,8 +602,32 @@ class VaultClient
      *
      * @return void
      */
-    public function setOptions(array $options): void
+    public function setOptions(array $options): self
     {
         $this->options = $options;
+
+        return $this;
+    }
+
+
+    /**
+     * @return int
+     */
+    public function getRetries(): int
+    {
+        return $this->retries;
+    }
+
+
+    /**
+     * @param  int  $retries
+     *
+     * @return $this
+     */
+    public function setRetries(int $retries): self
+    {
+        $this->retries = $retries;
+
+        return $this;
     }
 }

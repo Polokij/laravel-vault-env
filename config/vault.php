@@ -15,6 +15,9 @@ return [
     'storage' => env('VAULT_DEFAULT_ENGINE', 'secrets'),
     // the prefix will be added to each secret key on put and get requests
     'key_prefix' => trim(env('VAULT_KEY_PREFIX', ''), '/ '),
+    // number of request's retries
+    'retries' => 1,
+    'timeout' => 2, // sec.
 
     // Default Storage parameters for creation
     'default_storage_config' => [
