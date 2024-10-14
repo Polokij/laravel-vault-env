@@ -6,6 +6,7 @@ use LaravelVault\Commands\VaultStorageCommand;
 use LaravelVault\Commands\VaultUnsealCommand;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
+use LaravelVault\Enums\VaultAuthType;
 
 class VaultServiceProvider extends ServiceProvider
 {
@@ -34,6 +35,14 @@ class VaultServiceProvider extends ServiceProvider
 
             if ($retries ?? null) {
                 $client->setRetries($retries);
+            }
+
+
+            $authConfig = config("vault.auth.$auth_type", []);
+
+            if ($authConfig) {
+                $authType = VaultAuthType::from($authConfig['type']);
+                $client->setAuth($authType, $authConfig);
             }
 
             return $client;
