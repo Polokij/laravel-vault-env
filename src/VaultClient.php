@@ -2,6 +2,10 @@
 
 namespace LaravelVault;
 
+use LaravelVault\AuthHandlers\{AuthContract, KubernetesAuth, TokenAuth};
+use LaravelVault\Enums\VaultAuthType;
+use LaravelVault\Exceptions\KubernetesJWTNotFound;
+use LaravelVault\Exceptions\KubernetetsJWTInvalid;
 use Illuminate\Http\Client\{PendingRequest, RequestException, Response};
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -65,6 +69,13 @@ class VaultClient
      */
     private array $options = [];
 
+    /**
+     * @var VaultAuthType
+     */
+    private VaultAuthType $authType = VaultAuthType::TOKEN;
+
+    private AuthContract $authResolver;
+
 
     /**
      * @param  string  $address
@@ -83,6 +94,22 @@ class VaultClient
         }
     }
 
+
+    /**
+     * @param  VaultAuthType  $authType
+     * @param  array          $config
+     *
+     * @return AuthContract
+     * @throws KubernetesJWTNotFound
+     * @throws KubernetetsJWTInvalid
+     */
+    public function setAuth(VaultAuthType $authType, array $config): AuthContract
+    {
+        return $this->authResolver = match ($authType) {
+            VaultAuthType::KUBERNETES => new KubernetesAuth($this, $config),
+            VaultAuthType::TOKEN => new TokenAuth($this, $config),
+        };
+    }
 
     /**
      * @return string
@@ -138,14 +165,18 @@ class VaultClient
 
     /**
      * @param  \Closure  $method
-     * @param  string    $path
+     * @param  string    $url
      *
      * @return array|mixed
      * @throws RequestException
      */
-    private function processRequest(\Closure $method, string $path): mixed
+    private function processRequest(\Closure $method, string $url): mixed
     {
-        $path = $this->getPath($path);
+        if (isset($this->authResolver)) {
+            $this->setToken($this->authResolver->getToken());
+        }
+
+        $url = $this->getUrl($url);
 
         $request = Http::withHeaders($this->headers)
             ->timeout($this->timeout)
@@ -156,7 +187,7 @@ class VaultClient
             $request->retry($this->retries, 10, throw: false);
         }
 
-        $this->response = $method($path, $request);
+        $this->response = $method($url, $request);
 
         $this->apiEndpoint = '';
 
@@ -175,11 +206,22 @@ class VaultClient
 
 
     /**
+     * @deprecated Use getUrl() method instead of getPath()
+     *
      * @param $key
      *
      * @return string
      */
-    public function getPath($key): string
+    public function getPath($key): string {
+        return $this->getUrl($key);
+    }
+
+    /**
+     * @param $key
+     *
+     * @return string
+     */
+    public function getUrl($key): string
     {
         $path = "{$this->address}/{$this->apiVersion}";
 
@@ -522,7 +564,7 @@ class VaultClient
     public function __get(string $key)
     {
         if ($key === 'path') {
-            return $this->getPath('');
+            return $this->getUrl('');
         }
 
         $this->apiEndpoint = $key;
