@@ -16,13 +16,18 @@ return [
     'key_prefix' => trim(env('VAULT_KEY_PREFIX', ''), '/ '),
 
     //  accepted auth types: token, kubernetes
-    'auth_type' => env('VAUlt_AUTH_TYPE', 'token'),
+    'auth_type' => env('VAUlt_AUTH', 'token'),
 
     'auth' => [
         "token" => [
+            'type' => 'token',
             'token' => env('VAULT_TOKEN', ''),
         ],
+        /**
+         * Documentation: https://developer.hashicorp.com/vault/docs/auth/kubernetes#authentication
+         */
         "kubernetes" => [
+            'type' => 'kubernetes',
             // kubernetes service account's token path - required for kubernetes auth
             "sa_token_path" => env('VAULT_SA_TOKEN_PATH', '/var/run/secrets/kubernetes.io/serviceaccount/token'),
 

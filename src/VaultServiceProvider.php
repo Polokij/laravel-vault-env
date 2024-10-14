@@ -37,11 +37,11 @@ class VaultServiceProvider extends ServiceProvider
                 $client->setRetries($retries);
             }
 
-            $authType = VaultAuthType::tryFrom($auth_type ?? 'token');
 
             $authConfig = config("vault.auth.$auth_type", []);
 
-            if (!$authConfig) {
+            if ($authConfig) {
+                $authType = VaultAuthType::from($authConfig['type']);
                 $client->setAuth($authType, $authConfig);
             }
 
