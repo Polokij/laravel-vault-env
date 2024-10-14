@@ -5,7 +5,7 @@ namespace LaravelVault;
 use LaravelVault\AuthHandlers\{AuthContract, KubernetesAuth, TokenAuth};
 use LaravelVault\Enums\VaultAuthType;
 use LaravelVault\Exceptions\KubernetesJWTNotFound;
-use LaravelVault\Exceptions\KubernetetsJWTInvalid;
+use LaravelVault\Exceptions\KubernetesJWTInvalid;
 use Illuminate\Http\Client\{PendingRequest, RequestException, Response};
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -101,7 +101,7 @@ class VaultClient
      *
      * @return AuthContract
      * @throws KubernetesJWTNotFound
-     * @throws KubernetetsJWTInvalid
+     * @throws KubernetesJWTInvalid
      */
     public function setAuth(VaultAuthType $authType, array $config): AuthContract
     {

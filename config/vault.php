@@ -16,7 +16,7 @@ return [
     'key_prefix' => trim(env('VAULT_KEY_PREFIX', ''), '/ '),
 
     //  accepted auth types: token, kubernetes
-    'auth_type' => env('VAUlt_AUTH', 'token'),
+    'auth_type' => env('VAULT_AUTH', 'token'),
 
     'auth' => [
         "token" => [
@@ -35,7 +35,8 @@ return [
             "auth_endpoint" => env('VAULT_AUTH_ENDPOINT', 'kubernetes'),
 
             // vault's kubernetes auth role for specified service's account
-            "auth_role" => env('VAULT_AUTH_ROLE', 'vault'),
+            // vault's kubernetes auth role for specified service's account
+            "auth_role" => env('VAULT_AUTH_ROLE', env('VAULT_ROLE','vault')),
         ],
     ],
 

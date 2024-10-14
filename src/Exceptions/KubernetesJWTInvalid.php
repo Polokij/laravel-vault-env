@@ -2,6 +2,6 @@
 
 namespace LaravelVault\Exceptions;
 
-class KubernetetsJWTInvalid extends \Exception
+class KubernetesJWTInvalid extends \Exception
 {
 }

@@ -5,14 +5,17 @@ namespace LaravelVault\AuthHandlers;
 use Carbon\Carbon;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use LaravelVault\Exceptions\KubernetesJWTNotFound;
-use LaravelVault\Exceptions\KubernetetsJWTInvalid;
+use LaravelVault\Exceptions\KubernetesJWTInvalid;
 use LaravelVault\VaultClient;
 
 class KubernetesAuth implements AuthContract
 {
     protected string $saTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token";
+
     protected string $authEndpoint = 'kubernetes';
+
     protected string $authRole = 'vault';
 
     private string $jwtToken = '';
@@ -22,7 +25,7 @@ class KubernetesAuth implements AuthContract
     private Carbon $jwtTokenWarningTime;
 
     private Carbon $tokenExpiresAt;
-    
+
     private string $token;
 
 
@@ -31,7 +34,7 @@ class KubernetesAuth implements AuthContract
      * @param  array        $config
      *
      * @throws KubernetesJWTNotFound
-     * @throws KubernetetsJWTInvalid
+     * @throws KubernetesJWTInvalid
      */
     public function __construct(
         protected VaultClient $client,
@@ -50,40 +53,42 @@ class KubernetesAuth implements AuthContract
      *
      * @return string
      * @throws KubernetesJWTNotFound
-     * @throws KubernetetsJWTInvalid
+     * @throws KubernetesJWTInvalid
      */
     private function retrieveKubernetesToken(bool $force = false): string
     {
         if (!$force
             && !empty($jwtToken)
             && $this->jwtTokenExpiresAt->isFuture()
-            && $this->jwtTokenWarningTime->isFuture()
+            // && $this->jwtTokenWarningTime->isFuture()
         ) {
             return $jwtToken;
         }
 
-        $jwtToken = \file_get_contents($this->saTokenPath);
-
-        if (!$jwtToken) {
-            throw new KubernetesJWTNotFound("Filed to retrieve the token on {$this->saTokenPath}");
+        if (!\file_exists($this->saTokenPath)) {
+            throw new KubernetesJWTNotFound("File with JWT {$this->saTokenPath} not found");
         }
 
         $this->jwtToken = \file_get_contents($this->saTokenPath);
 
         if (!$this->jwtToken) {
-            throw new KubernetesJWTNotFound("File {$this->saTokenPath} doesn't contain the token");
+            throw new KubernetesJWTInvalid("Kubernetes JWT is invalid");
         }
 
-        $payload = \base64_decode(\explode(".", $this->jwtToken)[1]) ?? "";
+        $jwtParts = \explode(".", $this->jwtToken);
 
-        if ($payload) {
-            throw new KubernetetsJWTInvalid("Failed to retrieve the token's payload");
+        if (\count($jwtParts) !== 3) {
+            throw new KubernetesJWTInvalid("Failed to retrieve the token's payload");
         }
 
-        $payload = \json_decode($payload);
+        $payload = json_decode(\base64_decode($jwtParts[1]), true);
+
+        if (!$payload) {
+            throw new KubernetesJWTInvalid("Failed to retrieve the token's payload");
+        }
 
         $this->jwtTokenExpiresAt = Carbon::createFromTimestamp($payload['exp']);
-        $this->jwtTokenWarningTime = Carbon::createFromTimestamp($payload['warnafter']);
+        $this->jwtTokenWarningTime = Carbon::createFromTimestamp($payload['kubernetes.io']['warnafter']);
 
         return $this->jwtToken;
     }
@@ -92,7 +97,7 @@ class KubernetesAuth implements AuthContract
     /**
      * @throws RequestException
      * @throws KubernetesJWTNotFound
-     * @throws KubernetetsJWTInvalid
+     * @throws KubernetesJWTInvalid
      */
     private function kubernetesLogin(): string
     {
@@ -117,11 +122,15 @@ class KubernetesAuth implements AuthContract
         $this->token = $auth['client_token'];
         // setting up the token expiration time based on the lease duration and
         $this->tokenExpiresAt = now()->addSeconds($auth['lease_duration']);
+        Log::debug('The Vault token will expire at '.$this->tokenExpiresAt);
 
         return $this->token;
     }
 
 
+    /**
+     * @return bool
+     */
     public function isTokenExpired(): bool
     {
         // mark as expired two minutes before real expiration to prevent the 401 Unauthorized HTTP - from Vault when
@@ -133,7 +142,7 @@ class KubernetesAuth implements AuthContract
     /**
      * @return string
      * @throws KubernetesJWTNotFound
-     * @throws KubernetetsJWTInvalid
+     * @throws KubernetesJWTInvalid
      * @throws RequestException
      */
     public function getToken(): string
