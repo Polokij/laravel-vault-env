@@ -3,7 +3,7 @@
 namespace LaravelVault\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
+use LaravelVault\Commands\Traits\HelperTrait;
 use LaravelVault\VaultFacade as Vault;
 
 /**
@@ -14,6 +14,8 @@ use LaravelVault\VaultFacade as Vault;
  */
 class VaultUnseal extends Command
 {
+    use HelperTrait; 
+    
     /**
      * @var string
      */
@@ -24,16 +26,7 @@ class VaultUnseal extends Command
      * @var string
      */
     protected $description = 'Unseal the Vault';
-
-    /**
-     * @var Collection
-     */
-    protected Collection $status;
-
-    /**
-     * @var array
-     */
-    protected array $unsealKeys = [];
+    
 
     /**
      * @return void
@@ -104,76 +97,4 @@ class VaultUnseal extends Command
     }
 
 
-    /**
-     * @param $display
-     *
-     * @return void
-     */
-    protected function fetchStatus($display)
-    {
-        $this->status = collect(Vault::status());
-
-        if ($display) {
-            $this->displayResponse($this->status);
-        }
-    }
-
-
-    /**
-     * @param Collection $collection
-     *
-     * @return void
-     */
-    protected function displayResponse(Collection $collection)
-    {
-        $collection->each(fn($value, $key) => $this->info("$key: ".\json_encode($value),));
-    }
-
-
-    /**
-     * @param string $key
-     *
-     * @return bool
-     */
-    protected function unseal(string $key): bool
-    {
-        $result = Vault::unseal($key);
-
-        if (Vault::getResponse()->successful()) {
-            $this->status = collect($result);
-        } else {
-            Log::error(Vault::getResponse()->body().'');
-
-            return false;
-        }
-
-        $this->info("Unseal progress: {$result['progress']}  Status:"
-            .($result['sealed'] ? 'sealed' : 'unsealed'));
-
-        return $result['sealed'];
-    }
-
-    /**
-     * @param string $file
-     *
-     * @return array|mixed|void
-     */
-    protected function getUnsealKeys(string $file = '') {
-        if ($this->unsealKeys) {
-            return $this->unsealKeys;
-        }
-
-        $unsealFile = $file ?: config('vault.unseal_keys_file');
-
-        if (!$unsealFile) {
-            $this->error('Unseal Keys file is not specified');
-
-            exit(1);
-        }
-
-        $unsealKeys = json_decode(\file_get_contents($unsealFile));
-        Vault::setToken($unsealKeys['root_token']);
-
-        return $unsealKeys;
-    }
 }
