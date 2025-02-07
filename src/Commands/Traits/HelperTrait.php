@@ -3,6 +3,7 @@
 namespace LaravelVault\Commands\Traits;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use LaravelVault\VaultFacade as Vault;
 
 trait HelperTrait
@@ -62,8 +63,9 @@ trait HelperTrait
      *
      * @return array|mixed|void
      */
-    protected function getUnsealKeys(string $file = '') {
-        if ($this->unsealKeys) {
+    protected function getUnsealKeys(string $file = '')
+    {
+        if (!empty($this->unsealKeys)) {
             return $this->unsealKeys;
         }
 
@@ -75,7 +77,7 @@ trait HelperTrait
             exit(1);
         }
 
-        $unsealKeys = json_decode(\file_get_contents($unsealFile));
+        $unsealKeys = json_decode(\file_get_contents($unsealFile), true);
         Vault::setToken($unsealKeys['root_token']);
 
         return $unsealKeys;
@@ -84,7 +86,7 @@ trait HelperTrait
     /**
      * @return void
      */
-    private function intitVault(): void
+    private function initVault(): void
     {
         $unsealKeys = Vault::init();
 
@@ -110,5 +112,5 @@ trait HelperTrait
 
         $this->unsealKeys = $unsealKeys;
     }
-    
+
 }
