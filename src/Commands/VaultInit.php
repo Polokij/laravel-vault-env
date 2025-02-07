@@ -2,6 +2,7 @@
 
 namespace LaravelVault\Commands;
 
+use Illuminate\Console\Command;
 use LaravelVault\Commands\Traits\HelperTrait;
 
 /**
@@ -11,7 +12,7 @@ use LaravelVault\Commands\Traits\HelperTrait;
  * @author Vitalii Liubimov <vitalii@liubimov.org>
  * @package LaravelVault\Commands
  */
-class VaultInit extends VaultUnseal
+class VaultInit extends Command
 {
     use HelperTrait;
     
@@ -39,11 +40,11 @@ class VaultInit extends VaultUnseal
             $this->initVault();
         }
 
-        if ($this->option('--root-token')) {
+        if ($this->option('root-token')) {
             $this->info('Root Token: '.$this->getUnsealKeys()['root_token']);
         }
 
-        if ($this->option('--unseal')) {
+        if ($this->option('unseal')) {
             if (!$this->status['sealed']) {
                 $this->info('Vault Already Unsealed');
                 exit(0);
