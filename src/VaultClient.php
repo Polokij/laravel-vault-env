@@ -2,14 +2,14 @@
 
 namespace LaravelVault;
 
-use LaravelVault\AuthHandlers\{AuthContract, KubernetesAuth, TokenAuth};
-use LaravelVault\Enums\VaultAuthType;
-use LaravelVault\Exceptions\KubernetesJWTNotFound;
-use LaravelVault\Exceptions\KubernetesJWTInvalid;
 use Illuminate\Http\Client\{PendingRequest, RequestException, Response};
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use LaravelVault\AuthHandlers\{AuthContract, KubernetesAuth, TokenAuth};
 use LaravelVault\Enums\Action;
+use LaravelVault\Enums\VaultAuthType;
+use LaravelVault\Exceptions\KubernetesJWTInvalid;
+use LaravelVault\Exceptions\KubernetesJWTNotFound;
 
 /**
  * Class VaultClient
@@ -24,10 +24,11 @@ class VaultClient
     /**
      * @var array
      */
-    private array $headers = [
-        'X-Vault-Request' => true,
-        'Content-Type' => 'application/json',
-    ];
+    private array $headers
+        = [
+            'X-Vault-Request' => true,
+            'Content-Type'    => 'application/json',
+        ];
 
     /**
      * @var bool
@@ -78,10 +79,10 @@ class VaultClient
 
 
     /**
-     * @param  string  $address
-     * @param  string  $storage
-     * @param  string  $prefix
-     * @param  string  $token
+     * @param string $address
+     * @param string $storage
+     * @param string $prefix
+     * @param string $token
      */
     public function __construct(
         private string $address = '',
@@ -96,8 +97,8 @@ class VaultClient
 
 
     /**
-     * @param  VaultAuthType  $authType
-     * @param  array          $config
+     * @param VaultAuthType $authType
+     * @param array $config
      *
      * @return AuthContract
      * @throws KubernetesJWTNotFound
@@ -121,7 +122,7 @@ class VaultClient
 
 
     /**
-     * @param  mixed  $token
+     * @param mixed $token
      */
     public function setToken($token): VaultClient
     {
@@ -164,8 +165,8 @@ class VaultClient
 
 
     /**
-     * @param  \Closure  $method
-     * @param  string    $url
+     * @param \Closure $method
+     * @param string $url
      *
      * @return array|mixed
      * @throws RequestException
@@ -206,13 +207,14 @@ class VaultClient
 
 
     /**
-     * @deprecated Use getUrl() method instead of getPath()
-     *
      * @param $key
      *
      * @return string
+     * @deprecated Use getUrl() method instead of getPath()
+     *
      */
-    public function getPath($key): string {
+    public function getPath($key): string
+    {
         return $this->getUrl($key);
     }
 
@@ -238,8 +240,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  bool    $reset
+     * @param string $key
+     * @param bool $reset
      *
      * @return array|mixed
      * @throws RequestException
@@ -251,8 +253,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  array   $params
+     * @param string $key
+     * @param array $params
      *
      * @return array|mixed
      * @throws RequestException
@@ -264,8 +266,23 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  bool    $reset
+     * Initialize the Vault
+     */
+    protected function init(array $initOptions = []): array
+    {
+        $initOptions = \array_merge($initOptions, [
+            'secret_shares'    => 4,
+            'secret_threshold' => 2,
+        ]);
+        $response = $this->sys->post('init', $initOptions);
+
+        return $response->json();
+    }
+
+
+    /**
+     * @param string $key
+     * @param bool $reset
      *
      * @return array|mixed
      * @throws RequestException
@@ -273,7 +290,7 @@ class VaultClient
     public function unseal(string $key = '', bool $reset = false): mixed
     {
         $params = [
-            'reset' => $reset,
+            'reset'   => $reset,
             'migrate' => false,
         ];
 
@@ -284,8 +301,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  array   $params
+     * @param string $key
+     * @param array $params
      *
      * @return array|mixed
      * @throws RequestException
@@ -352,7 +369,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $token
+     * @param string $token
      *
      * @return array|mixed
      * @throws RequestException
@@ -384,7 +401,7 @@ class VaultClient
 
 
     /**
-     * @param  array  $resources
+     * @param array $resources
      *
      * @return string
      */
@@ -424,8 +441,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  array   $params
+     * @param string $key
+     * @param array $params
      *
      * @return array|mixed
      * @throws RequestException
@@ -437,9 +454,9 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  null    $value
-     * @param  array   $metadata
+     * @param string $key
+     * @param null $value
+     * @param array $metadata
      *
      * @return mixed
      * @throws RequestException
@@ -469,8 +486,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  string  $dest
+     * @param string $key
+     * @param string $dest
      *
      * @return string
      */
@@ -483,7 +500,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return mixed
      * @throws RequestException
@@ -495,7 +512,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return mixed
      * @throws RequestException
@@ -507,7 +524,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return bool
      * @throws RequestException
@@ -536,7 +553,7 @@ class VaultClient
     /**
      * Alias for destroyRecursive method
      *
-     * @param  string  $key
+     * @param string $key
      *
      * @return bool
      * @throws RequestException
@@ -557,7 +574,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return $this|string
      */
@@ -583,7 +600,7 @@ class VaultClient
 
 
     /**
-     * @param  bool  $throwException
+     * @param bool $throwException
      *
      * @return void
      */
@@ -605,7 +622,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $policyTemplate
+     * @param string $policyTemplate
      *
      * @return void
      */
@@ -627,7 +644,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $timeout
+     * @param string $timeout
      *
      * @return void
      */
@@ -640,7 +657,7 @@ class VaultClient
 
 
     /**
-     * @param  array  $options
+     * @param array $options
      *
      * @return void
      */
@@ -662,7 +679,7 @@ class VaultClient
 
 
     /**
-     * @param  int  $retries
+     * @param int $retries
      *
      * @return $this
      */

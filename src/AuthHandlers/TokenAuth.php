@@ -11,11 +11,23 @@ class TokenAuth implements AuthContract
 
     public function __construct(private VaultClient $client, private array $config)
     {
-        $this->token = $this->config['token'] ?? '';
+        $this->token = $config['token'] ?? '';
 
-        if (!$this->token) {
-            Log::error('Vault Token is empty');
+        if ($this->token) {
+            return;
         }
+
+        if (!$config['token_file']) {
+            Log::error(new \Exception("Can't resolve Vault Token"));
+
+            return;
+        }
+
+        if (!\file_exists($config['token_file'])) {
+            Log::error(new \Exception("Specified Vault Token File doesn't exists"));
+        }
+
+        $this->token = trim(\file_get_contents($config['token_file']), " \n");
     }
 
 

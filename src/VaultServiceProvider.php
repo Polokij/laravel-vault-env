@@ -2,10 +2,11 @@
 
 namespace LaravelVault;
 
-use LaravelVault\Commands\VaultStorageCommand;
-use LaravelVault\Commands\VaultUnsealCommand;
-use Illuminate\Foundation\AliasLoader;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use LaravelVault\Commands\VaultInit;
+use LaravelVault\Commands\VaultStorage;
+use LaravelVault\Commands\VaultUnseal;
 use LaravelVault\Enums\VaultAuthType;
 
 class VaultServiceProvider extends ServiceProvider
@@ -13,7 +14,8 @@ class VaultServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('vault', function ($app) {
-            extract(config('vault'));
+            $config = config('vault');
+            extract($config);
 
             if (empty($url)) {
                 $url = "$schema://$host:$port";
@@ -23,7 +25,9 @@ class VaultServiceProvider extends ServiceProvider
                 address: $url ?? '',
                 storage: $storage ?? '',
                 prefix: $key_prefix ?? '',
-                token: $token ?? '');
+                token: $token ?? ''
+            );
+
 
             if (!empty($policy_template)) {
                 $client->setPolicyTemplate($policy_template);
@@ -49,8 +53,9 @@ class VaultServiceProvider extends ServiceProvider
         });
 
         $this->commands([
-            VaultStorageCommand::class,
-            VaultUnsealCommand::class,
+            VaultStorage::class,
+            VaultUnseal::class,
+            VaultInit::class,
         ]);
     }
 

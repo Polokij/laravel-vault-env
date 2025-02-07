@@ -18,10 +18,15 @@ return [
     //  accepted auth types: token, kubernetes
     'auth_type' => env('VAULT_AUTH', 'token'),
 
+    // the unseal keys file's path - use to store the keys on init the vault and retrieve the keys for unseal the vault
+    'unseal_keys_file' => env('VAULT_UNSEAL_KEYS_FILE', '/secrets/vault/.vault_unseal.json'),
+
     'auth' => [
         "token" => [
             'type' => 'token',
             'token' => env('VAULT_TOKEN', ''),
+            'token_file' => env('VAULT_TOKEN_FILE', ''),
+            'token_from_unseal_file' => false
         ],
         /**
          * Documentation: https://developer.hashicorp.com/vault/docs/auth/kubernetes#authentication
@@ -29,7 +34,7 @@ return [
         "kubernetes" => [
             'type' => 'kubernetes',
             // kubernetes service account's token path - required for kubernetes auth
-            "sa_token_path" => env('VAULT_SA_TOKEN_PATH', '/var/run/secrets/kubernetes.io/serviceaccount/token'),
+            "sa_token_path" => env('VAULT_TOKEN_FILE', '/var/run/secrets/kubernetes.io/serviceaccount/token'),
 
             // auth endpoint for kubernetes auth type
             "auth_endpoint" => env('VAULT_AUTH_ENDPOINT', 'kubernetes'),
