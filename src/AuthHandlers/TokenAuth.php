@@ -2,32 +2,43 @@
 
 namespace LaravelVault\AuthHandlers;
 
-use LaravelVault\VaultClient;
 use Illuminate\Support\Facades\Log;
+use LaravelVault\Vault;
 
 class TokenAuth implements AuthContract
 {
     private string $token;
 
-    public function __construct(private VaultClient $client, private array $config)
+    public function __construct(Vault $client, private array $config)
     {
         $this->token = $config['token'] ?? '';
 
-        if ($this->token) {
+        if (!$this->token) {
             return;
         }
 
-        if (!$config['token_file']) {
-            Log::error(new \Exception("Can't resolve Vault Token"));
+        if (!$this->token && $config['token_file']) {
+            if (\file_exists($config['token_file'])) {
+                $this->token = trim(\file_get_contents($config['token_file']), " \n");
 
-            return;
+            } else {
+                Log::warning("Vault Token File '{$this->config['token_file']}' not Fount ");
+            }
         }
 
-        if (!\file_exists($config['token_file'])) {
-            Log::error(new \Exception("Specified Vault Token File doesn't exists"));
+        if (!$this->token && $config['token_from_unseal_file']) {
+            if (\file_exists($config['token_from_unseal_file'])) {
+                $this->token = json_decode(\file_get_contents($config['token_from_unseal_file']), true)['root_token'] ??
+                    '';
+            } else {
+                Log::warning("Vault Unseal Key File '{$this->config['token_from_unseal_file']}' not Found");
+            }
         }
 
-        $this->token = trim(\file_get_contents($config['token_file']), " \n");
+
+        if (!$this->token) {
+            Log::warning('Failed to retrieve Vault Token');
+        }
     }
 
 

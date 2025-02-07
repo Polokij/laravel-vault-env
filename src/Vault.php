@@ -12,14 +12,14 @@ use LaravelVault\Exceptions\KubernetesJWTInvalid;
 use LaravelVault\Exceptions\KubernetesJWTNotFound;
 
 /**
- * Class VaultClient
+ * Class Vault API client
  *
  * @author  Vitalii Liubimov <vitalii@liubimov.org>
  * @package LaravelVault
- * @property-read VaultClient $auth
- * @property-read VaultClient $sys
+ * @property-read Vault $auth
+ * @property-read Vault $sys
  */
-class VaultClient
+class Vault
 {
     /**
      * @var array
@@ -124,7 +124,7 @@ class VaultClient
     /**
      * @param mixed $token
      */
-    public function setToken($token): VaultClient
+    public function setToken($token): Vault
     {
         $this->token = $token;
         $this->headers['X-Vault-Token'] = "$this->token";
@@ -268,7 +268,7 @@ class VaultClient
     /**
      * Initialize the Vault
      */
-    protected function init(array $initOptions = []): array
+    public function init(array $initOptions = []): array
     {
         $initOptions = \array_merge($initOptions, [
             'secret_shares'    => 4,
@@ -276,7 +276,7 @@ class VaultClient
         ]);
         $response = $this->sys->post('init', $initOptions);
 
-        return $response->json();
+        return $response;
     }
 
 

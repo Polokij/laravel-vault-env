@@ -42,11 +42,11 @@ class LoadEnvironmentVariablesVault
 
 
     /**
-     * @return VaultClient
+     * @return Vault
      */
-    protected function getVaultClient(): VaultClient
+    protected function getVaultClient(): Vault
     {
-        $vaultClient = new VaultClient(
+        $vaultClient = new Vault(
             address: env('VAULT_ADDR'),
             storage: env('VAULT_STORAGE'),
             prefix: env('VAULT_KEY_PREFIX'),

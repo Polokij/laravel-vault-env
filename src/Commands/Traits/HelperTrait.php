@@ -4,8 +4,12 @@ namespace LaravelVault\Commands\Traits;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use LaravelVault\VaultFacade as Vault;
+use LaravelVault\Facades\Vault;
 
+
+/**
+ *
+ */
 trait HelperTrait
 {
 
@@ -73,6 +77,12 @@ trait HelperTrait
 
         if (!$unsealFile) {
             $this->error('Unseal Keys file is not specified');
+
+            exit(1);
+        }
+
+        if (!\file_exists($unsealFile)) {
+            $this->error("Unseal Keys file '$unsealFile' doesn't exists");
 
             exit(1);
         }

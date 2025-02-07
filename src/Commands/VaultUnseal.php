@@ -4,7 +4,7 @@ namespace LaravelVault\Commands;
 
 use Illuminate\Console\Command;
 use LaravelVault\Commands\Traits\HelperTrait;
-use LaravelVault\VaultFacade as Vault;
+use LaravelVault\Facades\Vault;
 
 /**
  * Class VaultUnseal
@@ -14,19 +14,19 @@ use LaravelVault\VaultFacade as Vault;
  */
 class VaultUnseal extends Command
 {
-    use HelperTrait; 
-    
+    use HelperTrait;
+
     /**
      * @var string
      */
     protected $signature = 'vault:unseal 
-        {--s|status} {--r|reset} {--seal} {--i|interactive}{--f|file} {--timeout} {key?} ';
+        {--s|status} {--r|reset} {--seal} {--i|interactive} {--f|file= : Unseal Keys File} {--timeout} {key?} ';
 
     /**
      * @var string
      */
     protected $description = 'Unseal the Vault';
-    
+
 
     /**
      * @return void
@@ -60,16 +60,17 @@ class VaultUnseal extends Command
             exit (Vault::getResponse()->successful() ? 0 : 2);
         }
 
-        $unsealKeysFile = $arguments->get('key', \config('vault.unseal_keys_file'));
+        $unsealKeysFile = $this->option('file') ?: \config('vault.unseal_keys_file');
 
-        if (!$unsealKeysFile) {
+        if (!$unsealKeysFile && $this->argument('key') ) {
             $this->error('No keys provided for vault unseal');
 
             exit(1);
         }
+        \Log::info('Options', $this->options());
 
-        if ($this->option('file')) {
-            $filename = $arguments->get('key', \config('vault.unseal_keys_file')) ;
+        if ($this->option('file') || \config('vault.unseal_keys_file')) {
+            $filename = $this->option('file') ?: \config('vault.unseal_keys_file') ;
 
             if (!\file_exists($filename)) {
                 $this->error("File $filename not found.");
@@ -95,6 +96,4 @@ class VaultUnseal extends Command
 
         $this->fetchStatus(true);
     }
-
-
 }

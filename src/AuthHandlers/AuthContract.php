@@ -2,11 +2,11 @@
 
 namespace LaravelVault\AuthHandlers;
 
-use LaravelVault\VaultClient;
+use LaravelVault\Vault;
 
 interface AuthContract
 {
-    public function __construct(VaultClient $client, array $config);
+    public function __construct(Vault $client, array $config);
 
     public function getToken(): string;
 }

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use LaravelVault\Exceptions\KubernetesJWTNotFound;
 use LaravelVault\Exceptions\KubernetesJWTInvalid;
-use LaravelVault\VaultClient;
+use LaravelVault\Vault;
 
 class KubernetesAuth implements AuthContract
 {
@@ -30,14 +30,14 @@ class KubernetesAuth implements AuthContract
 
 
     /**
-     * @param  VaultClient  $client
+     * @param  Vault  $client
      * @param  array        $config
      *
      * @throws KubernetesJWTNotFound
      * @throws KubernetesJWTInvalid
      */
     public function __construct(
-        protected VaultClient $client,
+        protected Vault $client,
         protected array $config
     ) {
         isset($config['sa_token_path']) && ($this->saTokenPath = $config['sa_token_path']);
