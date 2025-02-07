@@ -5,6 +5,7 @@ namespace LaravelVault;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use LaravelVault\Commands\VaultInit;
+use LaravelVault\Commands\VaultStatus;
 use LaravelVault\Commands\VaultStorage;
 use LaravelVault\Commands\VaultUnseal;
 use LaravelVault\Enums\VaultAuthType;
@@ -56,6 +57,7 @@ class VaultServiceProvider extends ServiceProvider
             VaultStorage::class,
             VaultUnseal::class,
             VaultInit::class,
+            VaultStatus::class
         ]);
     }
 
