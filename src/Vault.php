@@ -441,6 +441,76 @@ class Vault
 
 
     /**
+     * @param string $name
+     * @param array $properties
+     *
+     * @return bool
+     * @throws RequestException
+     */
+    public function createStorage(string $name = '', array $properties = []): bool
+    {
+        $name = $name ?: $this->getStorage();
+
+        if (!$this->isStorageExists($name)) {
+            $config = $properties ?: collect(\config('vault.default_storage_config'));
+
+            return (bool)$this->sys->post("/mounts/$name", $config->toArray());
+        }
+
+        return true;
+    }
+
+
+    /**
+     * @param $name
+     *
+     * @return bool
+     * @throws RequestException
+     */
+    public function isStorageExists($name)
+    {
+        try {
+            $this->sys->get("mounts/$name");
+        } catch (RequestException $e) {
+            if ($e->getCode() === 400) {
+                return false;
+            }
+
+            throw $e;
+        }
+
+        return $this->getResponse()->ok();
+    }
+
+
+    /**
+     * @param $name
+     *
+     * @return bool
+     * @throws RequestException
+     */
+    public function deleteStorage($name): bool
+    {
+        try {
+            if ($this->isStorageExists($name)) {
+                $this->sys->get("mounts/$name");
+            } else {
+                return true;
+            }
+
+        } catch (RequestException $e) {
+            if ($e->getCode() === 400) {
+                return false;
+            }
+
+            throw $e;
+        }
+
+        return $this->getResponse()->ok();
+    }
+
+
+    /**
      * @param string $key
      * @param array $params
      *
@@ -474,7 +544,7 @@ class Vault
         $secretPostBody = $this->post($path, ['data' => $value]);
 
         if ($this->getResponse()->successful() && $metadata) {
-            $metadataKey = \Str::replaceFirst('data', 'metadata', $path);
+            $metadataKey = Str::replaceFirst('data', 'metadata', $path);
 
             $metadataUpdateBody = $this->post($metadataKey, ['custom_metadata' => $metadata]);
 
