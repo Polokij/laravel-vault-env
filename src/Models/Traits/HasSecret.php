@@ -4,6 +4,7 @@ namespace LaravelVault\Models\Traits;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use LaravelVault\Facades\Vault;
 
 /**
  * The trait provide the get,put secrets features for Eloquent models
@@ -56,7 +57,7 @@ trait HasSecret
      */
     public function hasSecret()
     {
-        return (bool) $this->vaultSecrets;
+        return (bool)$this->vaultSecrets;
     }
 
 
@@ -74,21 +75,21 @@ trait HasSecret
 
 
     /**
-     * @param  array  $value
+     * @param array $value
      *
      * @return false|void
      */
-    public function setSecretAttribute(array $value): bool
+    public function setSecretAttribute(array $value)
     {
         if (!$this->secret_key) {
             $this->secret_key = $this->generateSecretKeyTrait();
         }
 
         // skip saving the key if the model wasn't saved yet
-        if (!$this->id) {
+        if (!$this->exists) {
             $this->vaultSecrets = $value;
 
-            return false;
+            return;
         }
 
         $res = $this->storeSecret('', $value);
@@ -100,14 +101,12 @@ trait HasSecret
         if ($this->isDirty('secret_key')) {
             $this->save();
         }
-
-        return $res;
     }
 
 
     /**
-     * @param  string      $key
-     * @param  array|null  $value
+     * @param string $key
+     * @param array|null $value
      *
      * @return array|bool|null
      */
@@ -145,43 +144,43 @@ trait HasSecret
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return array|null
      */
     public function getSecret(string $key = ''): array|null
     {
-        \Vault::setThrowException(false);
-        $secrets = \Vault::secret($this->getSecretPath($key));
+        Vault::setThrowException(false);
+        $secrets = Vault::secret($this->getSecretPath($key));
 
         return isset($secrets['errors']) ? null : $secrets;
     }
 
 
     /**
-     * @param  string  $key
-     * @param  array   $value
+     * @param string $key
+     * @param array $value
      *
      * @return bool
      */
     public function storeSecret(string $key, array $value): bool
     {
-        \Vault::setThrowException(true);
-        \Vault::setTimeout(5);
-        $result = \Vault::secret($this->getSecretPath($key), $value);
+        Vault::setThrowException(true);
+        Vault::setTimeout(5);
+        $result = Vault::secret($this->getSecretPath($key), $value);
 
         return !isset($result['errors']);
     }
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return bool
      */
     public function destroySecret(string $key = ''): bool
     {
-        \Vault::setThrowException(false);
+        Vault::setThrowException(false);
         if (!$key || Str::endsWith('/', $key)) {
             collect($this->listSecrets($key))
                 ->each(function ($key, $index) {
@@ -192,7 +191,7 @@ trait HasSecret
         // TODO:; Update the vault package to generate the path automatically
         $path = config('vault.storage').'/metadata/'.$this->getSecretPath($key);
 
-        $result = \Vault::delete($path);
+        $result = Vault::delete($path);
 
         return !isset($result['errors']);
     }
@@ -207,7 +206,7 @@ trait HasSecret
     {
         $path = config('vault.storage').'/metadata/'.$this->getSecretPath($key);
 
-        return \Vault::listRequest($path)['keys'] ?? [];
+        return Vault::listRequest($path)['keys'] ?? [];
     }
 
 
