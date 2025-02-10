@@ -26,6 +26,7 @@ return [
             'type' => 'token',
             'token' => env('VAULT_TOKEN', ''),
             'token_file' => env('VAULT_TOKEN_FILE', ''),
+            // method is not secure. Don't use for production.
             'token_from_unseal_file' => false
         ],
         /**

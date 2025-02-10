@@ -536,9 +536,17 @@ class Vault
         $path = $this->getSecretPath($key);
 
         if ($value === null) {
-            $secretResponse = $this->get($path);
+            try {
+                $secretResponse = $this->get($path);
 
-            return $secretResponse['data'] ?? $secretResponse;
+                return $secretResponse['data'] ?? null;
+            } catch (RequestException $e) {
+                if ($e->getCode() === 404) {
+                    return null;
+                }
+
+                throw $e;
+            }
         }
 
         $secretPostBody = $this->post($path, ['data' => $value]);

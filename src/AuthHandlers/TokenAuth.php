@@ -13,10 +13,6 @@ class TokenAuth implements AuthContract
     {
         $this->token = $config['token'] ?? '';
 
-        if (!$this->token) {
-            return;
-        }
-
         if (!$this->token && $config['token_file']) {
             if (\file_exists($config['token_file'])) {
                 $this->token = trim(\file_get_contents($config['token_file']), " \n");
@@ -28,8 +24,8 @@ class TokenAuth implements AuthContract
 
         if (!$this->token && $config['token_from_unseal_file']) {
             if (\file_exists($config['token_from_unseal_file'])) {
-                $this->token = json_decode(\file_get_contents($config['token_from_unseal_file']), true)['root_token'] ??
-                    '';
+                $unsealKeys = json_decode(\file_get_contents($config['token_from_unseal_file']), true);
+                $this->token = $unsealKeys['root_token'] ?? '';
             } else {
                 Log::warning("Vault Unseal Key File '{$this->config['token_from_unseal_file']}' not Found");
             }
