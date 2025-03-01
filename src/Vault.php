@@ -134,6 +134,15 @@ class Vault
 
 
     /**
+     * @return AuthContract
+     */
+    public function getAuthResolver(): AuthContract
+    {
+        return $this->authResolver;
+    }
+
+
+    /**
      * @return $this
      */
     public function instance(): self
