@@ -103,7 +103,7 @@ class VaultServiceProvider extends ServiceProvider
                 $authConfig['token_from_unseal_file'] = $config['unseal_keys_file'];
             }
 
-            $client->setAuth($authType, $authConfig);
+            $client->setAuth($authType, $authConfig)->getToken();
         }
 
         return $client;
