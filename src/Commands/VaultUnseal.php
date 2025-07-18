@@ -3,25 +3,41 @@
 namespace LaravelVault\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
-use LaravelVault\VaultFacade as Vault;
+use LaravelVault\Commands\Traits\HelperTrait;
+use LaravelVault\Facades\Vault;
 
-class VaultUnsealCommand extends Command
+/**
+ * Class VaultUnseal
+ *
+ * @package LaravelVault\Commands
+ * @author Vitalii Liubimov <vitalii@liubimov.org>
+ */
+class VaultUnseal extends Command
 {
-    protected $signature = 'vault:unseal {--s|status} {--r|reset} {--seal} {--i|interactive}{--f|file} {--timeout} {key?} ';
+    use HelperTrait;
 
-    protected $description = 'Unseal the vault';
+    /**
+     * @var string
+     */
+    protected $signature = 'vault:unseal 
+        {--s|status} {--r|reset} {--seal} {--i|interactive} {--f|file= : Unseal Keys File} {--timeout} {key?} ';
 
-    private Collection $status;
+    /**
+     * @var string
+     */
+    protected $description = 'Unseal the Vault';
 
 
+    /**
+     * @return void
+     */
     public function handle(): void
     {
         if ($this->option('timeout') && \is_numeric($this->option('timeout'))) {
             Vault::setTimeout((int) $this->option('timeout'));
         }
 
-        $this->status($this->option('status'));
+        $this->fetchStatus($this->option('status'));
         $arguments = collect($this->arguments());
 
         if ($this->option('seal')) {
@@ -44,14 +60,17 @@ class VaultUnsealCommand extends Command
             exit (Vault::getResponse()->successful() ? 0 : 2);
         }
 
-        if (!$arguments->get('key', '')) {
+        $unsealKeysFile = $this->option('file') ?: \config('vault.unseal_keys_file');
+
+        if (!$unsealKeysFile && $this->argument('key') ) {
             $this->error('No keys provided for vault unseal');
 
             exit(1);
         }
+        \Log::info('Options', $this->options());
 
-        if ($this->option('file')) {
-            $filename = $arguments['key'];
+        if ($this->option('file') || \config('vault.unseal_keys_file')) {
+            $filename = $this->option('file') ?: \config('vault.unseal_keys_file') ;
 
             if (!\file_exists($filename)) {
                 $this->error("File $filename not found.");
@@ -67,7 +86,7 @@ class VaultUnsealCommand extends Command
             }
 
             Vault::setToken($unsealData['root_token']);
-            Vault::setTimeout(3);// last unseal request could take some time
+            Vault::setTimeout(3);// last unseal request could take some time for if using S3 buckend
 
             $unsealKeys->each(fn($key) => $this->unseal($key));
         } else {
@@ -75,42 +94,6 @@ class VaultUnsealCommand extends Command
                 ->each(fn($key) => $this->unseal($key));
         }
 
-        $this->status(true);
-        exit(0);
-    }
-
-
-    private function status($display)
-    {
-        $this->status = collect(Vault::status());
-
-        if ($display) {
-            $this->displayResponse($this->status);
-        }
-    }
-
-
-    private function displayResponse(Collection $collection)
-    {
-        $collection->each(fn($value, $key) => $this->info("$key: ".\json_encode($value),));
-    }
-
-
-    private function unseal(string $key): bool
-    {
-        $result = Vault::unseal($key);
-
-        if (Vault::getResponse()->successful()) {
-            $this->status = collect($result);
-        } else {
-            \Log::error(Vault::getResponse()->body().'');
-
-            return false;
-        }
-
-        $this->info("Unseal progress: {$result['progress']}  Status:"
-            .($result['sealed'] ? 'sealed' : 'unsealed'));
-
-        return $result['sealed'];
+        $this->fetchStatus(true);
     }
 }

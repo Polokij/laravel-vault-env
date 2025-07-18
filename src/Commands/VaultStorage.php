@@ -5,7 +5,7 @@ namespace LaravelVault\Commands;
 use Illuminate\Console\Command;
 use LaravelVault\VaultFacade as Vault;
 
-class VaultStorageCommand extends Command
+class VaultStorage extends Command
 {
     protected $signature = 'vault:storage {action} {name}';
 

@@ -5,25 +5,30 @@ namespace LaravelVault;
 use Illuminate\Http\Client\{PendingRequest, RequestException, Response};
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use LaravelVault\AuthHandlers\{AuthContract, KubernetesAuth, TokenAuth};
 use LaravelVault\Enums\Action;
+use LaravelVault\Enums\VaultAuthType;
+use LaravelVault\Exceptions\KubernetesJWTInvalid;
+use LaravelVault\Exceptions\KubernetesJWTNotFound;
 
 /**
- * Class VaultClient
+ * Class Vault API client
  *
  * @author  Vitalii Liubimov <vitalii@liubimov.org>
  * @package LaravelVault
- * @property-read VaultClient $auth
- * @property-read VaultClient $sys
+ * @property-read Vault $auth
+ * @property-read Vault $sys
  */
-class VaultClient
+class Vault
 {
     /**
      * @var array
      */
-    private array $headers = [
-        'X-Vault-Request' => true,
-        'Content-Type' => 'application/json',
-    ];
+    private array $headers
+        = [
+            'X-Vault-Request' => true,
+            'Content-Type'    => 'application/json',
+        ];
 
     /**
      * @var bool
@@ -65,12 +70,19 @@ class VaultClient
      */
     private array $options = [];
 
+    /**
+     * @var VaultAuthType
+     */
+    private VaultAuthType $authType = VaultAuthType::TOKEN;
+
+    private AuthContract $authResolver;
+
 
     /**
-     * @param  string  $address
-     * @param  string  $storage
-     * @param  string  $prefix
-     * @param  string  $token
+     * @param string $address
+     * @param string $storage
+     * @param string $prefix
+     * @param string $token
      */
     public function __construct(
         private string $address = '',
@@ -85,6 +97,22 @@ class VaultClient
 
 
     /**
+     * @param VaultAuthType $authType
+     * @param array $config
+     *
+     * @return AuthContract
+     * @throws KubernetesJWTNotFound
+     * @throws KubernetesJWTInvalid
+     */
+    public function setAuth(VaultAuthType $authType, array $config): AuthContract
+    {
+        return $this->authResolver = match ($authType) {
+            VaultAuthType::KUBERNETES => new KubernetesAuth($this, $config),
+            VaultAuthType::TOKEN => new TokenAuth($this, $config),
+        };
+    }
+
+    /**
      * @return string
      */
     public function getStorage(): string
@@ -94,14 +122,23 @@ class VaultClient
 
 
     /**
-     * @param  mixed  $token
+     * @param mixed $token
      */
-    public function setToken($token): VaultClient
+    public function setToken($token): Vault
     {
         $this->token = $token;
         $this->headers['X-Vault-Token'] = "$this->token";
 
         return $this;
+    }
+
+
+    /**
+     * @return AuthContract
+     */
+    public function getAuthResolver(): AuthContract
+    {
+        return $this->authResolver;
     }
 
 
@@ -137,15 +174,19 @@ class VaultClient
 
 
     /**
-     * @param  \Closure  $method
-     * @param  string    $path
+     * @param \Closure $method
+     * @param string $url
      *
      * @return array|mixed
      * @throws RequestException
      */
-    private function processRequest(\Closure $method, string $path): mixed
+    private function processRequest(\Closure $method, string $url): mixed
     {
-        $path = $this->getPath($path);
+        if (isset($this->authResolver)) {
+            $this->setToken($this->authResolver->getToken());
+        }
+
+        $url = $this->getUrl($url);
 
         $request = Http::withHeaders($this->headers)
             ->timeout($this->timeout)
@@ -156,7 +197,7 @@ class VaultClient
             $request->retry($this->retries, 10, throw: false);
         }
 
-        $this->response = $method($path, $request);
+        $this->response = $method($url, $request);
 
         $this->apiEndpoint = '';
 
@@ -178,8 +219,20 @@ class VaultClient
      * @param $key
      *
      * @return string
+     * @deprecated Use getUrl() method instead of getPath()
+     *
      */
     public function getPath($key): string
+    {
+        return $this->getUrl($key);
+    }
+
+    /**
+     * @param $key
+     *
+     * @return string
+     */
+    public function getUrl($key): string
     {
         $path = "{$this->address}/{$this->apiVersion}";
 
@@ -196,8 +249,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  bool    $reset
+     * @param string $key
+     * @param bool $reset
      *
      * @return array|mixed
      * @throws RequestException
@@ -209,8 +262,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  array   $params
+     * @param string $key
+     * @param array $params
      *
      * @return array|mixed
      * @throws RequestException
@@ -222,8 +275,23 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  bool    $reset
+     * Initialize the Vault
+     */
+    public function init(array $initOptions = []): array
+    {
+        $initOptions = \array_merge($initOptions, [
+            'secret_shares'    => 4,
+            'secret_threshold' => 2,
+        ]);
+        $response = $this->sys->post('init', $initOptions);
+
+        return $response;
+    }
+
+
+    /**
+     * @param string $key
+     * @param bool $reset
      *
      * @return array|mixed
      * @throws RequestException
@@ -231,7 +299,7 @@ class VaultClient
     public function unseal(string $key = '', bool $reset = false): mixed
     {
         $params = [
-            'reset' => $reset,
+            'reset'   => $reset,
             'migrate' => false,
         ];
 
@@ -242,8 +310,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  array   $params
+     * @param string $key
+     * @param array $params
      *
      * @return array|mixed
      * @throws RequestException
@@ -310,7 +378,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $token
+     * @param string $token
      *
      * @return array|mixed
      * @throws RequestException
@@ -342,7 +410,7 @@ class VaultClient
 
 
     /**
-     * @param  array  $resources
+     * @param array $resources
      *
      * @return string
      */
@@ -382,8 +450,78 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  array   $params
+     * @param string $name
+     * @param array $properties
+     *
+     * @return bool
+     * @throws RequestException
+     */
+    public function createStorage(string $name = '', array $properties = []): bool
+    {
+        $name = $name ?: $this->getStorage();
+
+        if (!$this->isStorageExists($name)) {
+            $config = $properties ?: collect(\config('vault.default_storage_config'));
+
+            return (bool)$this->sys->post("/mounts/$name", $config->toArray());
+        }
+
+        return true;
+    }
+
+
+    /**
+     * @param $name
+     *
+     * @return bool
+     * @throws RequestException
+     */
+    public function isStorageExists($name)
+    {
+        try {
+            $this->sys->get("mounts/$name");
+        } catch (RequestException $e) {
+            if ($e->getCode() === 400) {
+                return false;
+            }
+
+            throw $e;
+        }
+
+        return $this->getResponse()->ok();
+    }
+
+
+    /**
+     * @param $name
+     *
+     * @return bool
+     * @throws RequestException
+     */
+    public function deleteStorage($name): bool
+    {
+        try {
+            if ($this->isStorageExists($name)) {
+                $this->sys->get("mounts/$name");
+            } else {
+                return true;
+            }
+
+        } catch (RequestException $e) {
+            if ($e->getCode() === 400) {
+                return false;
+            }
+
+            throw $e;
+        }
+
+        return $this->getResponse()->ok();
+    }
+
+
+    /**
+     * @param string $key
+     * @param array $params
      *
      * @return array|mixed
      * @throws RequestException
@@ -395,9 +533,9 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  null    $value
-     * @param  array   $metadata
+     * @param string $key
+     * @param null $value
+     * @param array $metadata
      *
      * @return mixed
      * @throws RequestException
@@ -407,15 +545,23 @@ class VaultClient
         $path = $this->getSecretPath($key);
 
         if ($value === null) {
-            $secretResponse = $this->get($path);
+            try {
+                $secretResponse = $this->get($path);
 
-            return $secretResponse['data'] ?? $secretResponse;
+                return $secretResponse['data'] ?? null;
+            } catch (RequestException $e) {
+                if ($e->getCode() === 404) {
+                    return null;
+                }
+
+                throw $e;
+            }
         }
 
         $secretPostBody = $this->post($path, ['data' => $value]);
 
         if ($this->getResponse()->successful() && $metadata) {
-            $metadataKey = \Str::replaceFirst('data', 'metadata', $path);
+            $metadataKey = Str::replaceFirst('data', 'metadata', $path);
 
             $metadataUpdateBody = $this->post($metadataKey, ['custom_metadata' => $metadata]);
 
@@ -427,8 +573,8 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
-     * @param  string  $dest
+     * @param string $key
+     * @param string $dest
      *
      * @return string
      */
@@ -441,7 +587,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return mixed
      * @throws RequestException
@@ -453,7 +599,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return mixed
      * @throws RequestException
@@ -465,7 +611,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return bool
      * @throws RequestException
@@ -494,7 +640,7 @@ class VaultClient
     /**
      * Alias for destroyRecursive method
      *
-     * @param  string  $key
+     * @param string $key
      *
      * @return bool
      * @throws RequestException
@@ -515,14 +661,14 @@ class VaultClient
 
 
     /**
-     * @param  string  $key
+     * @param string $key
      *
      * @return $this|string
      */
     public function __get(string $key)
     {
         if ($key === 'path') {
-            return $this->getPath('');
+            return $this->getUrl('');
         }
 
         $this->apiEndpoint = $key;
@@ -541,7 +687,7 @@ class VaultClient
 
 
     /**
-     * @param  bool  $throwException
+     * @param bool $throwException
      *
      * @return void
      */
@@ -563,7 +709,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $policyTemplate
+     * @param string $policyTemplate
      *
      * @return void
      */
@@ -585,7 +731,7 @@ class VaultClient
 
 
     /**
-     * @param  string  $timeout
+     * @param string $timeout
      *
      * @return void
      */
@@ -598,7 +744,7 @@ class VaultClient
 
 
     /**
-     * @param  array  $options
+     * @param array $options
      *
      * @return void
      */
@@ -620,7 +766,7 @@ class VaultClient
 
 
     /**
-     * @param  int  $retries
+     * @param int $retries
      *
      * @return $this
      */

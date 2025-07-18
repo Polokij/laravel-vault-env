@@ -151,6 +151,54 @@ class Kernel extends HttpKernel
     ];
 ```
 
+### HasSecret Eloquent Trait Usage
+
+Add use trait to module 
+
+```php
+<?php
+
+namespace App\Models;
+
+use LaravelVault\Models\Traits\HasSecret;
+
+class User extends Authenticatable
+{
+    use HasSecret;
+    
+    public function getSecretKeyAttribute(): string
+    {
+        return "{$this->id}";
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getSecretPrefix(): string
+    {
+        return "users/user_{$this->id}";
+    }
+}
+```
+
+Store the secret to User's model
+
+```php 
+
+use App\Models\User;
+
+
+$user = User::find(1);
+
+$user->secret = ['token' => 'secret_token_to_store']; // Stored on vault /secrets/users/user_1/1 
+
+\Log::info('User\'s secret', $user->secret); // Will log : User\'s secret: ['token' => 'secret_token_to_store']   
+
+```
+
+
+
 ### Performance 
 Under investigation )) 
 
